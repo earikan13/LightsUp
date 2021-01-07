@@ -1,7 +1,10 @@
 #include <Adafruit_NeoPixel.h>
 #include <ESP8266WiFi.h>
-#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
+#include <WiFiManager.h>
 #include <BlynkSimpleEsp8266.h>
+
+#define BLYNK_DEBUG // Optional, this enables lots of prints
+#define BLYNK_PRINT Serial
 
 extern "C" {
 #include "user_interface.h"
@@ -12,7 +15,6 @@ extern "C" {
 int brightness = 125;
 int period_fadeANDchange = 75;
 bool Connected2Blynk = false;
-bool isItOn = false;
 bool on_off_change = true;
 int effect;
 bool change = true;
@@ -27,7 +29,8 @@ BlynkTimer timer_fadeANDchange;
 BlynkTimer checkConnec;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
-BLYNK_CONNECTED() {
+BLYNK_CONNECTED()
+{
   Blynk.virtualWrite(V2, 0);
   Blynk.virtualWrite(V1, 2);
   Blynk.virtualWrite(V5, 125);
@@ -36,14 +39,16 @@ BLYNK_CONNECTED() {
   Blynk.syncAll();
 }
 
-BLYNK_WRITE(V5) {
+BLYNK_WRITE(V5)
+{
   brightness = param.asInt();
   strip.setBrightness(brightness);
   strip.show();
   change = true;
 }
 
-BLYNK_WRITE(V0) {
+BLYNK_WRITE(V0)
+{
   period_fadeANDchange = param.asInt();
   timer_fadeANDchange.deleteTimer(timerID);
   timerID = timer_fadeANDchange.setInterval(period_fadeANDchange, fadeANDchange);
@@ -58,35 +63,32 @@ BLYNK_WRITE(V1) { //mode selection
   G = 0;
   B = 0;
   Blynk.virtualWrite(V3, 0, 0, 0);
-
   switch (param.asInt())
   {
-    case 1: // all white
+    case 1: // All white
       effect = 0;
       change = true;
       break;
-    case 2: // rgb
+
+    case 2: // RGB
       effect = 1;
       change = true;
       break;
-    case 3: // slow change
+
+    case 3: // Slow change
       effect = 2;
       change = true;
       break;
-    case 4: // diff
+
+    case 4: // Diff
       effect = 3;
       change = true;
       break;
-  }
-}
 
-BLYNK_WRITE(V2)
-{
-  if (param.asInt() == HIGH) {
-    isItOn = true;
-  }
-  else {
-    isItOn = false;
+    case 5: // Off
+      effect = 4;
+      change = true;
+      break;
   }
 }
 
@@ -100,16 +102,17 @@ BLYNK_WRITE(V3)
   }
 }
 
-void setup() {
+void setup()
+{
   randomSeed(analogRead(0));
-  Serial.begin(115200);
+  Serial.begin(9600);
   WiFi.mode(WIFI_STA);
   strip.begin();
   strip.show();
   strip.setBrightness(brightness);
   WiFiManager wifiManager;
   wifiManager.setTimeout(180);
-  if (!wifiManager.autoConnect("AutoConnectAP")) {
+  if (!wifiManager.autoConnect("LightsUp")) {
     Serial.println("failed to connect and hit timeout");
     delay(3000);
     //reset and try again, or maybe put it to deep sleep
@@ -118,52 +121,54 @@ void setup() {
   }
   Blynk.begin("b3PMh2RMpbuoJGZEp3k_X3fdFmk0kHOp", WiFi.SSID().c_str(), WiFi.psk().c_str());
   int timerID = timer_fadeANDchange.setInterval(period_fadeANDchange, fadeANDchange);
-  checkConnec.setInterval(11000L, CheckConnection);
   wifi_set_sleep_type(LIGHT_SLEEP_T);
-  checkConnec.run();
 }
 void loop()
 {
-  while (WiFi.status() == WL_CONNECTED) {
-    delay(20);
+  while (WiFi.status() == WL_CONNECTED)
+  {
     Blynk.run();
-    if (isItOn) {
-      if (!change) {
-        delay(100);
+
+    if (!change)
+    {}
+    else
+    {
+      switch (effect)
+      {
+        case 0: // all white
+          allWhite();
+          change = false;
+          break;
+
+        case 1: //stable rgb
+          stableRGB(R, G, B);
+          change = false;
+          break;
+
+        case 2: //slow change
+          timer_fadeANDchange.run();
+          break;
+
+        case 3:
+          diff();
+          change = false;
+          break;
+          
+        case 4:
+          leds_off();
+          change = false;
+          break;
+
+        default:
+          break;
       }
-      else {
-        switch (effect) {
-          case 0: // all white
-            allWhite();
-            change = false;
-            break;
-
-          case 1: //stable rgb
-            stableRGB(R, G, B);
-            change = false;
-            break;
-
-          case 2: //slow change
-            timer_fadeANDchange.run();
-            break;
-
-          case 3:
-            diff();
-            change = false;
-            break;
-            
-          default:
-            break;
-        }
-      }
-    }
-    else {
-      leds_off();
     }
   }
 }
-void fadeANDchange() {
-  switch (currentColor) {
+void fadeANDchange()
+{
+  switch (currentColor)
+  {
     case 0: //green arttır
       //Serial.println(G);
       G += 3;
@@ -207,13 +212,15 @@ void fadeANDchange() {
       }
       break;
   }
-  for (int i = 0; i < strip.numPixels(); i = i + 2) {
+  for (int i = 0; i < strip.numPixels(); i = i + 2)
+  {
     strip.setPixelColor(i, R, G, B);
   }
   strip.show();
 }
 
-void stableRGB(int R, int G, int B) {
+void stableRGB(int R, int G, int B)
+{
   for (int i = 0; i < strip.numPixels(); i = i + 2) {
     strip.setPixelColor(i, R, G, B);
   }
