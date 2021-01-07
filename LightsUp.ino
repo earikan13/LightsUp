@@ -13,7 +13,7 @@ int brightness = 125;
 int fadeAndChangePeriod = 75;
 bool Connected2Blynk = false;
 bool on_off_change = true;
-int effect;
+int effect = 5;
 int currentColor = 0;
 int R = 0;
 int G = 0;
@@ -49,7 +49,6 @@ BLYNK_WRITE(V1) { //mode selection
   R = 0;
   G = 0;
   B = 0;
-  fadeAndChangeTimer.deleteTimer(timerID);
   Blynk.virtualWrite(V3, 0, 0, 0);
   switch (param.asInt())
   {
@@ -64,8 +63,6 @@ BLYNK_WRITE(V1) { //mode selection
 
     case 3: // Slow change
       effect = 2;
-      timerID = fadeAndChangeTimer.setInterval(fadeAndChangePeriod, fadeAndChange);
-      fadeAndChangeTimer.run();
       break;
 
     case 4: // NOT IMPLEMENTED
@@ -92,10 +89,11 @@ BLYNK_WRITE(V3)
 void setup()
 {
   randomSeed(analogRead(0));
+  Serial.begin(9600);
   WiFi.mode(WIFI_STA);
   strip.begin();
-  strip.show();
-  strip.setBrightness(brightness);
+  leds_off();
+  strip.setBrightness(0);
   WiFiManager wifiManager;
   wifiManager.setTimeout(180);
   if (!wifiManager.autoConnect("LightsUp")) {
@@ -104,9 +102,10 @@ void setup()
     ESP.reset();
     delay(2000);
   }
+  timerID = fadeAndChangeTimer.setInterval(fadeAndChangePeriod, fadeAndChange);
   Blynk.begin("b3PMh2RMpbuoJGZEp3k_X3fdFmk0kHOp", WiFi.SSID().c_str(), WiFi.psk().c_str());
   Blynk.virtualWrite(V2, 0);
-  Blynk.virtualWrite(V1, 2);
+  Blynk.virtualWrite(V1, 5);
   Blynk.virtualWrite(V5, 125);
   Blynk.virtualWrite(V0, 75);
   Blynk.virtualWrite(V3, 0, 0, 0);
@@ -115,6 +114,10 @@ void setup()
 void loop()
 {
   Blynk.run();
+  if (effect == 2)
+  {
+    fadeAndChangeTimer.run();
+  }
 }
 void fadeAndChange()
 {
@@ -194,7 +197,7 @@ void allWhite()
 }
 void diff()
 {
-
+  // NOT IMPLEMENTED
 }
 
 void leds_off()
