@@ -88,7 +88,6 @@ BLYNK_WRITE(V3)
 
 void setup()
 {
-  randomSeed(analogRead(0));
   WiFi.mode(WIFI_STA);
   strip.begin();
   leds_off();
@@ -207,16 +206,3 @@ void leds_off()
   }
   strip.show();
 }
-//void CheckConnection()
-//{
-//  Connected2Blynk = Blynk.connected();
-//  if (!Connected2Blynk)
-//  {
-//    Serial.println("Not connected to Blynk server");
-//    Blynk.connect(33333);  // timeout set to 10 seconds and then continue without Blynk
-//  }
-//  else
-//  {
-//    Serial.println("Connected to Blynk server");
-//  }
-//}
