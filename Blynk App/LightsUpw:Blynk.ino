@@ -89,11 +89,10 @@ BLYNK_WRITE(V3)
 void setup()
 {
   randomSeed(analogRead(0));
-  Serial.begin(9600);
   WiFi.mode(WIFI_STA);
   strip.begin();
   leds_off();
-  strip.setBrightness(0);
+  strip.setBrightness(brightness);
   WiFiManager wifiManager;
   wifiManager.setTimeout(180);
   if (!wifiManager.autoConnect("LightsUp")) {
