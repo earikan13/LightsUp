@@ -15,18 +15,21 @@ bool Connected2Blynk = false;
 bool on_off_change = true;
 int effect = 5;
 int currentColor = 0;
-int R = 0;
-int G = 0;
-int B = 0;
+int R = 1023;
+int G = 1023;
+int B = 1023;
 int timerID;
+bool isFirstConnect = true;
 
 WiFiClient client;
 BlynkTimer fadeAndChangeTimer;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
-BLYNK_CONNECTED()
-{
-  Blynk.syncAll();
+BLYNK_CONNECTED() {
+  if (isFirstConnect) {
+    Blynk.syncAll();
+    isFirstConnect = false;
+  }
 }
 
 BLYNK_WRITE(V5)
@@ -46,10 +49,10 @@ BLYNK_WRITE(V0)
 BLYNK_WRITE(V1) { //mode selection
   leds_off();
   currentColor = 0;
-  R = 0;
-  G = 0;
-  B = 0;
-  Blynk.virtualWrite(V3, 0, 0, 0);
+  R = 1023;
+  G = 1023;
+  B = 1023;
+  Blynk.virtualWrite(V3, R, G, B);
   switch (param.asInt())
   {
     case 1: // All white

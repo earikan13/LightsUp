@@ -23,8 +23,8 @@
 
 #define LOG_D(fmt, ...)   printf_P(PSTR(fmt "\n") , ##__VA_ARGS__);
 
-#define NEOPIN          D4
-#define NUMPIXELS       64
+#define NEOPIN          14
+#define NUMPIXELS       30
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, NEOPIN, NEO_GRB + NEO_KHZ800);
 
 bool received_sat = false;
@@ -37,9 +37,7 @@ float current_hue = 0.0;
 int rgb_colors[3];
 
 void setup() {
-	Serial.begin(115200);
 	wifi_connect(); // in wifi_info.h
-
   pixels.begin(); 
   for(int i = 0; i < NUMPIXELS; i++)
   {
@@ -101,17 +99,14 @@ void set_on(const homekit_value_t v) {
 
     if(on) {
         is_on = true;
-        Serial.println("On");
     } else  {
         is_on = false;
-        Serial.println("Off");
     }
 
     updateColor();
 }
 
 void set_hue(const homekit_value_t v) {
-    Serial.println("set_hue");
     float hue = v.float_value;
     cha_hue.value.float_value = hue; //sync the value
 
@@ -122,7 +117,6 @@ void set_hue(const homekit_value_t v) {
 }
 
 void set_sat(const homekit_value_t v) {
-    Serial.println("set_sat");
     float sat = v.float_value;
     cha_sat.value.float_value = sat; //sync the value
 
@@ -134,7 +128,6 @@ void set_sat(const homekit_value_t v) {
 }
 
 void set_bright(const homekit_value_t v) {
-    Serial.println("set_bright");
     int bright = v.int_value;
     cha_bright.value.int_value = bright; //sync the value
 
@@ -155,9 +148,7 @@ void updateColor()
         received_sat = false;
       }
       
-      int b = map(current_brightness,0, 100,75, 255);
-      Serial.println(b);
-  
+      int b = map(current_brightness,0, 100,75, 255);  
       pixels.setBrightness(b);
       for(int i = 0; i < NUMPIXELS; i++)
       {
@@ -170,7 +161,6 @@ void updateColor()
     }
   else if(!is_on) //lamp - switch to off
   {
-      Serial.println("is_on == false");
       pixels.setBrightness(0);
       for(int i = 0; i < NUMPIXELS; i++)
       {
