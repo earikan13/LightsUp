@@ -14,10 +14,10 @@ int fadeAndChangePeriod = 75;
 bool Connected2Blynk = false;
 bool on_off_change = true;
 int effect = 5;
-int currentColor = 0;
-int R = 1023;
-int G = 1023;
-int B = 1023;
+volatile int currentColor = 0;
+volatile int R = 0;
+volatile int G = 0;
+volatile int B = 0;
 int timerID;
 bool isFirstConnect = true;
 
@@ -49,9 +49,9 @@ BLYNK_WRITE(V0)
 BLYNK_WRITE(V1) { //mode selection
   leds_off();
   currentColor = 0;
-  R = 1023;
-  G = 1023;
-  B = 1023;
+  R = 0;
+  G = 0;
+  B = 0;
   Blynk.virtualWrite(V3, R, G, B);
   switch (param.asInt())
   {
