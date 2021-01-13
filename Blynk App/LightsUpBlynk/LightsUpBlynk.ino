@@ -8,9 +8,9 @@ extern "C" {
 }
 
 #define PIN 0 // Pin for led strip
-
+#define NUM_LEDS 60
 int brightness = 125;
-int fadeAndChangePeriod = 75;
+int fadeAndChangePeriod = 250;
 bool Connected2Blynk = false;
 bool on_off_change = true;
 int effect = 5;
@@ -20,10 +20,11 @@ volatile int G = 0;
 volatile int B = 0;
 int timerID;
 bool isFirstConnect = true;
-
+bool change = true;
 WiFiClient client;
 BlynkTimer fadeAndChangeTimer;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+WiFiManager wifiManager;
 
 BLYNK_CONNECTED() {
   if (isFirstConnect) {
@@ -34,6 +35,7 @@ BLYNK_CONNECTED() {
 
 BLYNK_WRITE(V5)
 {
+  change = true;
   brightness = param.asInt();
   strip.setBrightness(brightness);
   strip.show();
@@ -41,12 +43,14 @@ BLYNK_WRITE(V5)
 
 BLYNK_WRITE(V0)
 {
+  change = true;
   fadeAndChangePeriod = param.asInt();
   fadeAndChangeTimer.deleteTimer(timerID);
   timerID = fadeAndChangeTimer.setInterval(fadeAndChangePeriod, fadeAndChange);
 }
 
 BLYNK_WRITE(V1) { //mode selection
+  change = true;
   leds_off();
   currentColor = 0;
   R = 0;
@@ -81,6 +85,7 @@ BLYNK_WRITE(V1) { //mode selection
 
 BLYNK_WRITE(V3)
 {
+  change = true;
   if (effect == 1) {
     R = param[0].asInt();
     G = param[1].asInt();
@@ -95,7 +100,6 @@ void setup()
   strip.begin();
   leds_off();
   strip.setBrightness(brightness);
-  WiFiManager wifiManager;
   wifiManager.setTimeout(180);
   if (!wifiManager.autoConnect("LightsUp")) {
     delay(3000);
@@ -110,14 +114,34 @@ void setup()
   Blynk.virtualWrite(V5, 125);
   Blynk.virtualWrite(V0, 75);
   Blynk.virtualWrite(V3, 0, 0, 0);
-  wifi_set_sleep_type(LIGHT_SLEEP_T);
 }
 void loop()
 {
-  Blynk.run();
+  if (Blynk.connected())
+  {
+    BLYNK_CONNECTED();
+    Blynk.run();
+  }
+
   if (effect == 2)
   {
     fadeAndChangeTimer.run();
+  }
+  else
+  {
+    if (!change)
+    {
+      delay(200);
+      light_sleep();
+      delay(200);
+      if (!wifiManager.autoConnect("LightsUp")) {
+        //reset and try again, or maybe put it to deep sleep
+        ESP.reset();
+        delay(2000);
+        isFirstConnect = true;
+      }
+      Blynk.connect(3333);
+    }
   }
 }
 void fadeAndChange()
@@ -125,8 +149,8 @@ void fadeAndChange()
   switch (currentColor)
   {
     case 0:
-      G += 3;
-      if (G == 252)
+      G += 1;
+      if (G == 255)
       {
         if (B == 0)
         {
@@ -138,35 +162,35 @@ void fadeAndChange()
       }
       break;
     case 1:
-      B -= 3;
+      B -= 1;
       if (B == 0)
       {
         currentColor = 2;
       }
       break;
     case 2:
-      R += 3;
-      if (R == 252)
+      R += 1;
+      if (R == 255)
       {
         currentColor = 3;
       }
       break;
     case 3:
-      G -= 3;
+      G -= 1;
       if (G == 0)
       {
         currentColor = 4;
       }
       break;
     case 4:
-      B += 3;
-      if (B == 252)
+      B += 1;
+      if (B == 255)
       {
         currentColor = 5;
       }
       break;
     case 5:
-      R -= 3;
+      R -= 1;
       if (R == 0)
       {
         currentColor = 0;
@@ -199,6 +223,7 @@ void allWhite()
 void diff()
 {
   // NOT IMPLEMENTED
+  change = false;
 }
 
 void leds_off()
@@ -208,4 +233,12 @@ void leds_off()
     strip.setPixelColor(i, 0, 0, 0);
   }
   strip.show();
+  change = false;
+}
+void light_sleep() {
+  wifi_station_disconnect();
+  wifi_set_opmode_current(NULL_MODE);
+  wifi_fpm_set_sleep_type(LIGHT_SLEEP_T); // set sleep type, the above    posters wifi_set_sleep_type() didnt seem to work for me although it did let me compile and upload with no errors
+  wifi_fpm_open(); // Enables force sleep
+  wifi_fpm_do_sleep(10000); // Sleep for longest possible time
 }
